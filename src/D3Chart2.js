@@ -1,6 +1,5 @@
 import * as d3 from "d3";
 
-const url = "https://udemy-react-d3.firebaseio.com/tallest_men.json";
 const MARGIN = { TOP: 10, BOTTOM: 50, LEFT: 70, RIGHT: 10 }; // D3 margin convention
 const WIDTH = 800 - MARGIN.LEFT - MARGIN.RIGHT;
 const HEIGHT = 500 - MARGIN.TOP - MARGIN.BOTTOM;
@@ -17,7 +16,7 @@ export default class D3Chart2 {
       .append("g") // group
       .attr("transform", `translate(${MARGIN.LEFT}, ${MARGIN.TOP})`); // to shift the group to the center of canvas
 
-    vis.svg
+    vis.xLabel = vis.svg
       .append("text")
       .attr("x", WIDTH / 2)
       .attr("y", HEIGHT + 50)
@@ -40,22 +39,21 @@ export default class D3Chart2 {
 
     Promise.all([
       d3.json("https://udemy-react-d3.firebaseio.com/tallest_men.json"),
-      d3.json("https://udemy-react-d3.firebaseio.com/tallest_women.json")
-    ]).then(datasets => {
-      
-    })
-
-    // d3.json(url).then((data) => {
-    //   vis.data = data;
-
-    //   d3.interval(() => {
-    //     vis.update();
-    //   }, 1000);
-    // });
+      d3.json("https://udemy-react-d3.firebaseio.com/tallest_women.json"),
+    ]).then((datasets) => {
+      vis.menData = datasets[0];
+      vis.womenData = datasets[1];
+      vis.update("men");
+    });
   }
 
-  update() {
+  update(gender) {
     const vis = this;
+
+    vis.data = (gender == "men") ? vis.menData : vis.womenData;
+    vis.xLabel.text(`The world's tallest ${gender}`);
+
+
     // const max = d3.max(vis.data, (d) => d.height); // runs through array and returns largest value
     // const min = d3.min(vis.data, (d) => d.height); // runs through array and returns lowest value
 
@@ -74,10 +72,10 @@ export default class D3Chart2 {
       .padding(0.4);
 
     const xAxisCall = d3.axisBottom(x);
-    vis.xAxisGroup.call(xAxisCall); // sets up x axis
+    vis.xAxisGroup.transition().duration(500).call(xAxisCall); // sets up x axis
 
     const yAxisCall = d3.axisLeft(y);
-    vis.yAxisGroup.call(yAxisCall); // sets up y axis
+    vis.yAxisGroup.transition().duration(500).call(yAxisCall); // sets up y axis
 
     // D3 general update pattern: (1) data join; (2) exit; (3) update; (4) enter
 
@@ -85,23 +83,29 @@ export default class D3Chart2 {
     const rects = vis.svg.selectAll("rect").data(vis.data);
 
     // EXIT
-    rects.exit().remove();
+    rects.exit()
+      .transition().duration(500)
+      .attr("height", 0)
+      .attr("y", HEIGHT)
+      .remove();
 
     // UPDATE
-    rects
+    rects.transition().duration(500)
       .attr("x", (d) => x(d.name))
       .attr("y", (d) => y(d.height))
       .attr("width", x.bandwidth)
       .attr("height", (d) => HEIGHT - y(d.height));
-    
+
     // ENTER
     rects
       .enter()
       .append("rect")
-      .attr("x", (d) => x(d.name))
-      .attr("y", (d) => y(d.height))
-      .attr("width", x.bandwidth) // this will scale baars on x axis
-      .attr("height", (d) => HEIGHT - y(d.height)) // this will scale bars on y axis
-      .attr("fill", "grey");
+        .attr("x", (d) => x(d.name))
+        .attr("width", x.bandwidth) // this will scale baars on x axis
+        .attr("fill", "grey")
+        .attr("y", HEIGHT)
+      .transition().duration(500)
+        .attr("height", (d) => HEIGHT - y(d.height)) // this will scale bars on y axis
+        .attr("y", (d) => y(d.height))
   }
 }
